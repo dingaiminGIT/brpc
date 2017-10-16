@@ -1,3 +1,5 @@
+[中文版](../cn/client.md)
+
 # Example
 
 [client-side code](https://github.com/brpc/brpc/blob/master/example/echo_c++/client.cpp) of echo.
@@ -11,7 +13,7 @@
 - No class named brpc::Client.
 
 # Channel
-Client-side sends requests. It's called [Channel](https://github.com/brpc/brpc/blob/master/src/brpc/channel.h) rather than "Client" in brpc. A channel represents a communication line to one server or multiple servers, which can be used for calling services.
+Client-side of RPC sends requests. It's called [Channel](https://github.com/brpc/brpc/blob/master/src/brpc/channel.h) rather than "Client" in brpc. A channel represents a communication line to one server or multiple servers, which can be used for calling services.
 
 A Channel can be **shared by all threads** in the process. Yon don't need to create separate Channels for each thread, and you don't need to synchronize Channel.CallMethod with lock. However creation and destroying of Channel is **not** thread-safe,  make sure the channel is initialized and destroyed only by one thread.
 
@@ -428,6 +430,10 @@ Properties of Controller:
    - Put Controller on stack before synchronous RPC, be destructed when out of scope. Note that Controller of asynchronous RPC **must not** be put on stack, otherwise the RPC may still run when the Controller is being destructed and result in undefined behavior.
    - new Controller before asynchronous RPC, delete in done.
 
+## Number of worker pthreads
+
+There's **no** independent thread pool for client in brpc. All Channels and Servers share the same backing threads via [bthread](bthread.md).  Setting number of worker pthreads in Server works for Client as well if Server is in used. Or just specify the [gflag](flags.md) [-bthread_concurrency](brpc.baidu.com:8765/flags/bthread_concurrency) to set the global number of worker pthreads.
+
 ## Timeout
 
 **ChannelOptions.timeout_ms** is timeout in milliseconds for all RPCs via the Channel, Controller.set_timeout_ms() overrides value for one RPC. Default value is 1 second, Maximum value is 2^31 (about 24 days), -1 means wait indefinitely for response or connection error.
@@ -601,9 +607,11 @@ set_log_id() sets a 64-bit integral log_id, which is sent to the server-side alo
 
 ## Attachment
 
-baidu_std and hulu_pbrpc supports attachment, which is set by user to bypass serialization of protobuf. As a client, the data in Controller::request_attachment() will be received by the server and response_attachment() contains attachment sent back by the server. Attachment is not compressed by brpc.
+baidu_std and hulu_pbrpc supports attachments which are sent along with messages and set by users to bypass serialization of protobuf. As a client, data set in Controller::request_attachment() will be received by server and response_attachment() contains attachment sent back by the server.
 
-In http, attachment corresponds to [message body](http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html), namely the data to post is stored in request_attachment().
+Attachment is not compressed by framework.
+
+In http, attachment corresponds to [message body](http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html), namely the data to post to server is stored in request_attachment().
 
 ## Authentication
 TODO: Describe how authentication methods are extended.

@@ -1,3 +1,5 @@
+[English version](../en/client.md)
+
 # 示例程序
 
 Echo的[client端代码](https://github.com/brpc/brpc/blob/master/example/echo_c++/client.cpp)。
@@ -425,6 +427,10 @@ Controller的特点：
 3. Controller创建于开始RPC前，析构于RPC结束后，常见几种模式：
    - 同步RPC前Controller放栈上，出作用域后自行析构。注意异步RPC的Controller绝对不能放栈上，否则其析构时异步调用很可能还在进行中，从而引发未定义行为。
    - 异步RPC前new Controller，done中删除。
+
+## 线程数
+
+和大部分的RPC框架不同，brpc中并没有独立的Client线程池。所有Channel和Server通过[bthread](http://wiki.baidu.com/display/RPC/bthread)共享相同的线程池. 如果你的程序同样使用了brpc的server, 仅仅需要设置Server的线程数。 或者可以通过[gflags](http://wiki.baidu.com/display/RPC/flags)设置[-bthread_concurrency](http://brpc.baidu.com:8765/flags/bthread_concurrency)来设置全局的线程数.
 
 ## 超时
 

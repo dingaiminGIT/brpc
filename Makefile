@@ -7,9 +7,10 @@ include config.mk
 # 3. Removed -Werror: Not block compilation for non-vital warnings, especially when the
 #    code is tested on newer systems. If the code is used in production, add -Werror back
 CPPFLAGS+=-DBTHREAD_USE_FAST_PTHREAD_MUTEX -D__const__= -D_GNU_SOURCE -DUSE_SYMBOLIZE -DNO_TCMALLOC -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -DBRPC_REVISION=\"$(shell git rev-parse --short HEAD)\"
-CXXFLAGS+=$(CPPFLAGS) -O2 -pipe -Wall -W -fPIC -fstrict-aliasing -Wno-invalid-offsetof -Wno-unused-parameter -fno-omit-frame-pointer -std=c++0x
-CFLAGS+=$(CPPFLAGS) -O2 -pipe -Wall -W -fPIC -fstrict-aliasing -Wno-unused-parameter -fno-omit-frame-pointer
-DEBUG_CXXFLAGS = $(CXXFLAGS) -DUNIT_TEST -DBVAR_NOT_LINK_DEFAULT_VARIABLES
+CXXFLAGS=$(CPPFLAGS) -O2 -pipe -Wall -W -fPIC -fstrict-aliasing -Wno-invalid-offsetof -Wno-unused-parameter -fno-omit-frame-pointer -std=c++0x
+CFLAGS=$(CPPFLAGS) -O2 -pipe -Wall -W -fPIC -fstrict-aliasing -Wno-unused-parameter -fno-omit-frame-pointer
+DEBUG_CXXFLAGS = $(filter-out -DNDEBUG,$(CXXFLAGS)) -DUNIT_TEST -DBVAR_NOT_LINK_DEFAULT_VARIABLES
+DEBUG_CFLAGS = $(filter-out -DNDEBUG,$(CFLAGS)) -DUNIT_TEST
 HDRPATHS=-I./src $(addprefix -I, $(HDRS))
 LIBPATHS = $(addprefix -L, $(LIBS))
 COMMA = ,
@@ -173,6 +174,8 @@ OBJS=$(BUTIL_OBJS) $(BVAR_OBJS) $(BTHREAD_OBJS) $(JSON2PB_OBJS) $(MCPACK2PB_OBJS
 BVAR_DEBUG_OBJS=$(BUTIL_OBJS:.o=.dbg.o) $(BVAR_OBJS:.o=.dbg.o)
 DEBUG_OBJS = $(OBJS:.o=.dbg.o)
 
+PROTOS=$(BRPC_PROTOS) src/idl_options.proto
+
 .PHONY:all
 all:  protoc-gen-mcpack libbrpc.a libbrpc.so output/include output/lib output/bin
 
@@ -182,7 +185,7 @@ debug: libbrpc.dbg.a libbvar.dbg.a
 .PHONY:clean
 clean:clean_debug
 	@echo "Cleaning"
-	@rm -rf src/mcpack2pb/generator.o protoc-gen-mcpack libbrpc.a libbrpc.so $(OBJS) output/include output/lib output/bin
+	@rm -rf src/mcpack2pb/generator.o protoc-gen-mcpack libbrpc.a libbrpc.so $(OBJS) output/include output/lib output/bin $(PROTOS:.proto=.pb.h) $(PROTOS:.proto=.pb.cc)
 
 .PHONY:clean_debug
 clean_debug:
@@ -236,7 +239,7 @@ output/bin:protoc-gen-mcpack
 
 %.o:%.cpp
 	@echo "Compiling $@"
-	@$(CXX) -c $(HDRPATHS) $(CXXFLAGS) -DNDEBUG $< -o $@
+	@$(CXX) -c $(HDRPATHS) $(CXXFLAGS) $< -o $@
 
 %.dbg.o:%.cpp
 	@echo "Compiling $@"
@@ -244,7 +247,7 @@ output/bin:protoc-gen-mcpack
 
 %.o:%.cc
 	@echo "Compiling $@"
-	@$(CXX) -c $(HDRPATHS) $(CXXFLAGS) -DNDEBUG $< -o $@
+	@$(CXX) -c $(HDRPATHS) $(CXXFLAGS) $< -o $@
 
 %.dbg.o:%.cc
 	@echo "Compiling $@"
@@ -252,8 +255,8 @@ output/bin:protoc-gen-mcpack
 
 %.o:%.c
 	@echo "Compiling $@"
-	@$(CC) -c $(HDRPATHS) $(CFLAGS) -DNDEBUG $< -o $@
+	@$(CC) -c $(HDRPATHS) $(CFLAGS) $< -o $@
 
 %.dbg.o:%.c
 	@echo "Compiling $@"
-	@$(CC) -c $(HDRPATHS) $(CFLAGS) $< -o $@
+	@$(CC) -c $(HDRPATHS) $(DEBUG_CFLAGS) $< -o $@
